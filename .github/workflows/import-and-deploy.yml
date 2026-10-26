@@ -1,0 +1,73 @@
+name: Import Mineforge source and publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: mineforge-pages
+  cancel-in-progress: true
+
+jobs:
+  import-build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract uploaded source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f mineforge.zip ]; then
+            echo "No mineforge.zip found; source may already be extracted."
+          else
+            mkdir -p /tmp/mineforge-source
+            unzip -q mineforge.zip -d /tmp/mineforge-source
+            SOURCE_DIR=/tmp/mineforge-source
+            if [ -d /tmp/mineforge-source/video-battle-ia-minecraft-main ]; then
+              SOURCE_DIR=/tmp/mineforge-source/video-battle-ia-minecraft-main
+            fi
+            cp -a "$SOURCE_DIR"/. .
+          fi
+          # Keep the original archive out of the published site, but preserve it in the repository.
+          git status --short
+      - name: Commit extracted source files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Import Mineforge source code from archive"
+            git push
+          else
+            echo "No extracted source changes to commit."
+          fi
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: claude/package-lock.json
+      - name: Install dependencies
+        working-directory: claude
+        run: npm ci
+      - name: Build game
+        working-directory: claude
+        run: npm run build
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: claude/dist
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
