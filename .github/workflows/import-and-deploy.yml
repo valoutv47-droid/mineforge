@@ -26,7 +26,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -f mineforge.zip ]; then
+          if [ -f claude/src/main.ts ]; then
+            echo "Source already extracted; preserving fixes."
+          elif [ ! -f mineforge.zip ]; then
             echo "No mineforge.zip found; source may already be extracted."
           else
             mkdir -p /tmp/mineforge-source
