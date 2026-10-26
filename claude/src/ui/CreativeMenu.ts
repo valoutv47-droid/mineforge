@@ -47,7 +47,7 @@ export class CreativeMenu {
 
     const grid = document.createElement('div');
     grid.className = 'cm-grid';
-    const defs = Object.values(ITEM_DEFINITIONS).filter((d) => d && d.id !== 0 && d.id !== (BlockType.WATER as number));
+    const defs = Object.values(ITEM_DEFINITIONS).filter((d) => d && Number(d.id) !== 0 && Number(d.id) !== Number(BlockType.WATER));
     defs.sort((a, b) => a.name.localeCompare(b.name));
     for (const def of defs) {
       const el = document.createElement('div');
